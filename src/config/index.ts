@@ -7,12 +7,11 @@ import mainnet from './mainnet.json';
 import polygon from './polygon.json';
 import sepolia from './sepolia.json';
 import zkevm from './zkevm.json';
+import optimism from './optimism.json';
 import neonMainnet from './neon-mainnet.json';
 import neonDevnet from './neon-devnet.json';
 import base from './base.json';
 import baseGoerli from './base-goerli.json';
-
-
 export interface Config {
   networkId: number;
   network: string;
@@ -40,6 +39,7 @@ const config: Record<number, Config> = {
   [Network.ZKEVM]: zkevm,
   [Network.AVALANCHE]: avalanche,
   [Network.SEPOLIA]: sepolia,
+  [Network.OPTIMISM]: optimism,
   [Network.NEON_MAINNET]: neonMainnet,
   [Network.NEON_DEVNET]: neonDevnet,
   [Network.BASE]: base,

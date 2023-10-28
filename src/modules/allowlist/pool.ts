@@ -13,6 +13,9 @@ export async function allowlistPool(chainId: number, poolId: string) {
 
   const poolDescription = await getPoolSymbolFromContract(poolId, provider);
 
+  // Ignore LPB pools as they do not require allowlisting
+  if (poolDescription.endsWith('_LBP')) return
+
   let poolType = getPoolTypeFromId(poolId);
   if (!poolType) {
     poolType = await getPoolTypeFromContract(poolId, provider);
@@ -24,7 +27,11 @@ export async function allowlistPool(chainId: number, poolId: string) {
 
   console.log(`pool type: ${poolType}`);
 
-  const network = configs[chainId].network;
+  let network = configs[chainId].network;
+  if (network === 'mainnet') {
+    network = 'ethereum';
+  }
+
   const webhookData = {
     event_type: 'allowlist_pool',
     client_payload: {

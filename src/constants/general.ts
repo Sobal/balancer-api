@@ -32,6 +32,7 @@ export const Network: Record<string, number> = {
   // ARBITRUM: 42161,
   // AVALANCHE: 43114,
   // SEPOLIA: 11155111,
+  // OPTIMISM: 10,
   NEON_MAINNET: 245022934,
   NEON_DEVNET: 245022926,
   BASE: 8453,
