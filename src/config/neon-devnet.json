@@ -10,7 +10,7 @@
     "batchRelayer": "0x12977Bed9E12028789B2075119F8CcfE192C9ED6"
   },
   "coingecko": {
-    "platformId": "neon-evm",
+    "platformId": "",
     "nativeAssetId": "neon",
     "nativeAssetPriceSymbol": "neon"
   }
