@@ -58,6 +58,7 @@ const {
   GH_WEBHOOK_PAT,
   ALLOWLIST_POOL_ENDPOINT,
   ALLOWLIST_TOKEN_ENDPOINT,
+  COINGECKO_API_KEY,
   DEBUG,
 } = process.env;
 
@@ -340,6 +341,20 @@ export class BalancerPoolsAPI extends Stack {
       }
     );
 
+    const updateTokensFromCoingeckoLambda = new NodejsFunction(
+      this,
+      'updateTokensFromCoingeckoFunction',
+      {
+        entry: join(__dirname, 'src', 'lambdas', 'update-tokens-from-coingecko.ts'),
+        ...nodeJsFunctionProps,
+        memorySize: 512,
+        timeout: Duration.seconds(60),
+        environment: {
+          COINGECKO_API_KEY: COINGECKO_API_KEY || '',
+        },
+      }
+    );
+
     const tenderlySimulateLambda = new NodejsFunction(
       this,
       'tenderlySimulateFunction',
@@ -418,6 +433,13 @@ export class BalancerPoolsAPI extends Stack {
       new LambdaFunction(updateTokenPricesLambda)
     );
 
+    const updateTokensFromCoingeckoRule = new Rule(this, 'updateTokensFromCoingeckoInterval', {
+      schedule: Schedule.expression('rate(6 hours)'),
+    });
+    updateTokensFromCoingeckoRule.addTarget(
+      new LambdaFunction(updateTokensFromCoingeckoLambda)
+    );
+
     const updatePeriodWord = UPDATE_POOLS_INTERVAL > 1 ? 'minutes' : 'minute';
     Object.entries(updatePoolsLambdas).forEach(
       ([chainId, updatePoolsLambda]) => {
@@ -470,6 +492,7 @@ export class BalancerPoolsAPI extends Stack {
     tokensTable.grantReadData(runSORLambda);
     tokensTable.grantReadData(orderLambda);
     tokensTable.grantReadWriteData(updateTokenPricesLambda);
+    tokensTable.grantReadWriteData(updateTokensFromCoingeckoLambda);
     Object.values(decoratePoolsLambdas).forEach(decoratePoolsLambda => {
       tokensTable.grantReadData(decoratePoolsLambda);
     });
