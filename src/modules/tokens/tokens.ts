@@ -25,6 +25,20 @@ export async function updateTokenPrices(
   log('finished updating token prices');
 }
 
+export async function updateCoingeckoFullTokenList(
+  Network: Record<string,number>,
+  abortOnRateLimit = false
+) {
+  const priceFetcher = new PriceFetcher(abortOnRateLimit);
+  log(`Fetching tokens for all chains from coingecko.`);
+  const tokens = await priceFetcher.getCoingeckoFullTokenListByChains(Network);
+  log(`Fetched full list of ${tokens.length} tokens from coingecko for all chains`);
+  const tokensWithPrices = await priceFetcher.fetch(tokens);
+  log(`Saving ${tokensWithPrices.length} updated tokens to DB`);
+  await updateTokens(tokensWithPrices);
+  log('finished updating token prices');
+}
+
 export function tokensToTokenPrices(tokens: Token[]): TokenPrices {
   const tokenPrices: TokenPrices = {};
   tokens.forEach(token => {
