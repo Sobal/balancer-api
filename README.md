@@ -39,6 +39,7 @@ cp .env.example .env
 ```
 
 Open the `.env` file and set `INFURA_PROJECT_ID` to your personal [Infura](https://infura.io/) project ID.
+Set the `COINGECKO_API_KEY` to a demo key from Coingeckos API accounts.
 
 ### Local Development
 
