@@ -100,7 +100,6 @@ class PriceFetcher {
   ): Promise<CoingeckoToken[]> {
     const log = console.log;
 
-    log(`Requesting data via fetch for ${COINGECKO_BASEURL + endpoint}`)
     const response = await fetch(COINGECKO_BASEURL + endpoint, {
       method: 'GET',
       headers: {
@@ -193,7 +192,6 @@ class PriceFetcher {
   private async fetchPrices(chainId, tokens: Token[]): Promise<CoinGeckoData> {
     const tokenAddresses = tokens.map(t => t.address);
     const endpoint = this.getEndpoint(chainId, tokenAddresses);
-    console.log('using endpoint', endpoint)
     return await this.queryCoingecko(endpoint);
   }
 
