@@ -258,8 +258,6 @@ class PriceFetcher {
           );
           token.price = formatPrice(tokenPrice);
         } else {
-          console.log(
-            `Found NO price for token ${token.symbol} via the SDK!`);
           token.noPriceData = true;
         }
       } else {
@@ -271,9 +269,6 @@ class PriceFetcher {
 
     try {
       this.tokens.push(token);
-      console.log(
-        `Updated token ${token.symbol} to price ${JSON.stringify(token.price)}`
-      );
     } catch (err) {
       console.error(
         `Encountered error calling updateToken on ${token.symbol}: ${err.message}`

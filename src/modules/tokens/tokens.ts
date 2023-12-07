@@ -39,7 +39,6 @@ export async function updateCoingeckoFullTokenList(
   log(`Fetched full list of ${tokens.length} tokens from coingecko for all chains`);
   const tokensWithPrices = await priceFetcher.fetch(tokens);
   log('Preparing',tokensWithPrices.length,'tokens to save to DB');
-  log(`Getting decimals for tokens which are missing`)
 
   const sortedTokensWithPrices: GroupedToken = tokensWithPrices.reduce((res, obj, index) => {
     const key = obj.chainId;
@@ -56,6 +55,7 @@ export async function updateCoingeckoFullTokenList(
     const infuraUrl = getRpcUrl(Number(chainId));
     const provider: any = new JsonRpcProvider(infuraUrl);
 
+  log(`Getting decimals for tokens which are missing`)
     const tokenInfo = await Promise.all(
       token.map(async (token) => {
         if (!token.decimals) {
@@ -64,14 +64,14 @@ export async function updateCoingeckoFullTokenList(
         }
       }));
 
-    log('Merging decimals to token objects for chain', chainId);
+    log('Merging decimals to',tokenInfo.length,'token objects for chain', chainId);
     tokenInfo.forEach(result => {
       tokensWithPrices[result.key].decimals = result.decimals;
       tokensWithPrices[result.key].symbol = result.symbol;
     })
   }
 
-  log('Building native asset data');
+  log('Building native asset token data');
   Object.values(configs)
   .reduce((res, obj) => {
     if(!priceFetcher.nativeAssetPrices[obj.coingecko.nativeAssetPriceSymbol]) return;
@@ -83,7 +83,7 @@ export async function updateCoingeckoFullTokenList(
   }, {});
 
   await updateTokens(tokensWithPrices);
-  log('finished updating all token prices on database');
+  log('Finished updating all token prices on database');
 }
 
 export function tokensToTokenPrices(tokens: Token[]): TokenPrices {
