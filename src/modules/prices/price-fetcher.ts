@@ -285,7 +285,7 @@ class PriceFetcher {
    * Fetches the price of all native assets as a pre-load so that
    * token prices on their chain can be calculated accurately
    **/
-  private async fetchNativeAssetPrices() {
+  public async fetchNativeAssetPrices() {
     const nativeAssetIds = Object.values(configs)
       .map(c => c.coingecko.nativeAssetId)
       .join(',');
@@ -349,7 +349,7 @@ class PriceFetcher {
   public async getCoingeckoFullTokenListByChains(Network: Record<string, number>): Promise<Token[]> {
 
     log(`Submitting request for full unfiltered token list from coingecko`)
-    const response = await this.queryFullListCoingecko(`/coins/list?include_platform=true&x_cg_demo_api_key=${COINGECKO_API_KEY}`);
+    const response = await this.queryFullListCoingecko(`/coins/list?include_platform=true`); // add to end of endpoint url if further limimtations get added &x_cg_demo_api_key=${COINGECKO_API_KEY}
 
     const platformIdArray = [];
     const platformIdtoChainArray = [];
@@ -382,7 +382,7 @@ class PriceFetcher {
           if (chain === undefined) {
             continue;
           } else {
-            filteredTokenList.push({ 'symbol': token.symbol, 'chainId': platformIdtoChainArray[platform.toLowerCase()], 'address': platforms[platform] })
+            filteredTokenList.push({ symbol: token.symbol, chainId: platformIdtoChainArray[platform.toLowerCase()], address: platforms[platform], id: token.id })
           }
         }
       }
