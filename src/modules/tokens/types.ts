@@ -5,6 +5,11 @@ export interface Token extends SDKToken {
   chainId: number;
   lastUpdate?: number;
   noPriceData?: boolean;
+  key?: number;
+}
+
+export interface GroupedToken {
+  [chainId: number]: Token[];
 }
 
 export enum SwapTokenType {
