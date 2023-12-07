@@ -27,6 +27,7 @@ export interface Config {
     platformId: string;
     nativeAssetId: string;
     nativeAssetPriceSymbol: string;
+    nativeAssetDecimals: number;
   };
 }
 

@@ -12,6 +12,7 @@
   "coingecko": {
     "platformId": "avalanche",
     "nativeAssetId": "avalanche-2",
-    "nativeAssetPriceSymbol": "avax"
+    "nativeAssetPriceSymbol": "avax",
+    "nativeAssetDecimals": 18
   }
 }

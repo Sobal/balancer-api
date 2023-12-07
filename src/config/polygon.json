@@ -12,6 +12,7 @@
   "coingecko": {
     "platformId": "polygon-pos",
     "nativeAssetId": "matic-network",
-    "nativeAssetPriceSymbol": "matic"
+    "nativeAssetPriceSymbol": "matic",
+    "nativeAssetDecimals": 18
   }
 }

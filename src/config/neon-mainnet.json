@@ -12,6 +12,7 @@
   "coingecko": {
     "platformId": "neon-evm",
     "nativeAssetId": "neon",
-    "nativeAssetPriceSymbol": "neon"
+    "nativeAssetPriceSymbol": "neon",
+    "nativeAssetDecimals": 18
   }
 }

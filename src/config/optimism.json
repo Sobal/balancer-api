@@ -12,6 +12,7 @@
   "coingecko": {
     "platformId": "optimistic-ethereum",
     "nativeAssetId": "ethereum",
-    "nativeAssetPriceSymbol": "eth"
+    "nativeAssetPriceSymbol": "eth",
+    "nativeAssetDecimals": 18
   }
 }
