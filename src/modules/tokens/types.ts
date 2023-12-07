@@ -6,6 +6,7 @@ export interface Token extends SDKToken {
   lastUpdate?: number;
   noPriceData?: boolean;
   key?: number;
+  id?: string;
 }
 
 export interface GroupedToken {
