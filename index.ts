@@ -434,7 +434,7 @@ export class BalancerPoolsAPI extends Stack {
     );
 
     const updateTokensFromCoingeckoRule = new Rule(this, 'updateTokensFromCoingeckoInterval', {
-      schedule: Schedule.expression('rate(6 hours)'),
+      schedule: Schedule.expression('rate(30 minutes)'),
     });
     updateTokensFromCoingeckoRule.addTarget(
       new LambdaFunction(updateTokensFromCoingeckoLambda)
