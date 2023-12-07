@@ -1,10 +1,12 @@
+import { JsonRpcProvider } from '@ethersproject/providers';
 import { BigNumber, ethers } from 'ethers';
-import { Token } from './types';
+import { GroupedToken, Token } from './types';
 import { Contract } from '@ethersproject/contracts';
 import PriceFetcher from '@/modules/prices/price-fetcher';
 // import BeetsPriceFetcher from '@/modules/prices/beets-price-fetcher';
 import { getToken, updateTokens } from '@/modules/dynamodb';
 import { TokenPrices } from '@sobal/sdk';
+import { getRpcUrl } from '@/modules/network';
 
 const log = console.log;
 
@@ -26,17 +28,49 @@ export async function updateTokenPrices(
 }
 
 export async function updateCoingeckoFullTokenList(
-  Network: Record<string,number>,
+  Network: Record<string, number>,
   abortOnRateLimit = false
 ) {
+
   const priceFetcher = new PriceFetcher(abortOnRateLimit);
   log(`Fetching tokens for all chains from coingecko.`);
   const tokens = await priceFetcher.getCoingeckoFullTokenListByChains(Network);
   log(`Fetched full list of ${tokens.length} tokens from coingecko for all chains`);
   const tokensWithPrices = await priceFetcher.fetch(tokens);
   log(`Saving ${tokensWithPrices.length} updated tokens to DB`);
+  log(`Getting decimals for tokens which are missing`)
+
+  const sortedTokensWithPrices: GroupedToken = tokensWithPrices.reduce((res, obj, index) => {
+    const key = obj.chainId;
+    const newObj = { symbol: obj.symbol, chainId: obj.chainId, address: obj.address, price: obj.price, decimals: obj.decimals, lastUpdated: obj.lastUpdate, key: index };
+    if (res[key])
+      res[key].push(newObj);
+    else
+      res[key] = [newObj];
+    return res;
+  }, {})
+
+  for (const [chainId, token] of Object.entries(sortedTokensWithPrices)) {
+    log('Preparing to fetch tokeninfo for chain', chainId)
+    const infuraUrl = getRpcUrl(Number(chainId));
+    const provider: any = new JsonRpcProvider(infuraUrl);
+
+    const tokenInfo = await Promise.all(
+      token.map(async (token) => {
+        if (!token.decimals) {
+          const tokenResult = await getTokenInfo(provider, token.chainId, token.address, true);
+          return { key: token.key, address: token.address, decimals: tokenResult.decimals, symbol: tokenResult.symbol }
+        }
+      }));
+
+    log('Merging decimals to token objects for chain', chainId);
+    tokenInfo.forEach(result => {
+      tokensWithPrices[result.key].decimals = result.decimals;
+      tokensWithPrices[result.key].symbol = result.symbol;
+    })
+  }
   await updateTokens(tokensWithPrices);
-  log('finished updating token prices');
+  log('finished updating all token prices on database');
 }
 
 export function tokensToTokenPrices(tokens: Token[]): TokenPrices {
@@ -53,13 +87,19 @@ export function tokensToTokenPrices(tokens: Token[]): TokenPrices {
 export async function getTokenInfo(
   provider,
   chainId: number,
-  address: string
+  address: string,
+  skipCachedCheck?: boolean,
 ): Promise<Token> {
   const tokenAddress = ethers.utils.getAddress(address);
+
   const cachedInfo = await getToken(chainId, tokenAddress);
+
   if (cachedInfo !== undefined) {
-    return cachedInfo;
+    if ((skipCachedCheck && cachedInfo.decimals) || !skipCachedCheck) {
+      return cachedInfo;
+    }
   }
+
 
   const contract = new Contract(
     tokenAddress,
@@ -74,14 +114,14 @@ export async function getTokenInfo(
   try {
     symbol = await contract.symbol();
     // eslint-disable-next-line no-empty
-  } catch {}
+  } catch { }
 
   let decimals = 18;
   try {
     decimals = await contract.decimals();
     decimals = BigNumber.from(decimals).toNumber();
     // eslint-disable-next-line no-empty
-  } catch {}
+  } catch { }
 
   const tokenInfo = {
     chainId,
@@ -97,16 +137,18 @@ export async function getTokenInfo(
 export async function getSymbol(
   provider,
   chainId: number,
-  tokenAddress: string
+  tokenAddress: string,
+  skipCachedCheck?: boolean,
 ) {
-  const tokenInfo = await getTokenInfo(provider, chainId, tokenAddress);
+  const tokenInfo = await getTokenInfo(provider, chainId, tokenAddress, skipCachedCheck);
   return tokenInfo.symbol;
 }
 export async function getDecimals(
   provider,
   chainId: number,
-  tokenAddress: string
+  tokenAddress: string,
+  skipCachedCheck?: boolean,
 ) {
-  const tokenInfo = await getTokenInfo(provider, chainId, tokenAddress);
+  const tokenInfo = await getTokenInfo(provider, chainId, tokenAddress, skipCachedCheck);
   return tokenInfo.decimals;
 }
