@@ -7,6 +7,7 @@ import PriceFetcher from '@/modules/prices/price-fetcher';
 import { getToken, updateTokens } from '@/modules/dynamodb';
 import { TokenPrices } from '@sobal/sdk';
 import { getRpcUrl } from '@/modules/network';
+import configs from '@/config';
 
 const log = console.log;
 
@@ -37,12 +38,12 @@ export async function updateCoingeckoFullTokenList(
   const tokens = await priceFetcher.getCoingeckoFullTokenListByChains(Network);
   log(`Fetched full list of ${tokens.length} tokens from coingecko for all chains`);
   const tokensWithPrices = await priceFetcher.fetch(tokens);
-  log(`Saving ${tokensWithPrices.length} updated tokens to DB`);
+  log('Preparing',tokensWithPrices.length,'tokens to save to DB');
   log(`Getting decimals for tokens which are missing`)
 
   const sortedTokensWithPrices: GroupedToken = tokensWithPrices.reduce((res, obj, index) => {
     const key = obj.chainId;
-    const newObj = { symbol: obj.symbol, chainId: obj.chainId, address: obj.address, price: obj.price, decimals: obj.decimals, lastUpdated: obj.lastUpdate, key: index };
+    const newObj = { symbol: obj.symbol, chainId: obj.chainId, address: obj.address, price: obj.price, decimals: obj.decimals, id: obj.id, key: index};
     if (res[key])
       res[key].push(newObj);
     else
@@ -69,6 +70,18 @@ export async function updateCoingeckoFullTokenList(
       tokensWithPrices[result.key].symbol = result.symbol;
     })
   }
+
+  log('Building native asset data');
+  Object.values(configs)
+  .reduce((res, obj) => {
+    if(!priceFetcher.nativeAssetPrices[obj.coingecko.nativeAssetPriceSymbol]) return;
+    const key = obj.networkId;
+    const newObj = { address: obj.addresses.nativeAsset.toLowerCase(), symbol: obj.coingecko.nativeAssetPriceSymbol, decimals: obj.coingecko.nativeAssetDecimals, id: obj.coingecko.nativeAssetId, chainId: key, price: {usd: priceFetcher.nativeAssetPrices[obj.coingecko.nativeAssetPriceSymbol].toString(), [obj.coingecko.nativeAssetPriceSymbol]: '1'} };
+    log ('Adding Native Token Entry:',newObj)
+    tokensWithPrices.push(newObj);
+    return res;
+  }, {});
+
   await updateTokens(tokensWithPrices);
   log('finished updating all token prices on database');
 }
