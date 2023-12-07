@@ -98,7 +98,6 @@ class PriceFetcher {
   private async queryFullListCoingecko(
     endpoint: string
   ): Promise<CoingeckoToken[]> {
-    const log = console.log;
 
     const response = await fetch(COINGECKO_BASEURL + endpoint, {
       method: 'GET',
@@ -125,7 +124,7 @@ class PriceFetcher {
 
   private async processQueue(): Promise<void> {
     if (this.lastRateLimit > Date.now() - this.rateLimitWaitTimeMS) {
-      console.log(`Currently rate limited, waiting ${((this.lastRateLimit + this.rateLimitWaitTimeMS) - Date.now())/1000} more seconds`);
+      console.log(`Currently rate limited, waiting ${((this.lastRateLimit + this.rateLimitWaitTimeMS) - Date.now()) / 1000} more seconds`);
       setTimeout(() => this.processQueue(), 1000);
       return;
     }
@@ -255,10 +254,12 @@ class PriceFetcher {
         }
         if (tokenPrice) {
           log(
-            `Found price for token ${token.symbol} via the SDK! Price is: ${tokenPrice}`
+            `Found price for token ${token.symbol} via the SDK! Price is: ${JSON.stringify(tokenPrice)}`
           );
           token.price = formatPrice(tokenPrice);
         } else {
+          console.log(
+            `Found NO price for token ${token.symbol} via the SDK!`);
           token.noPriceData = true;
         }
       } else {
@@ -270,7 +271,7 @@ class PriceFetcher {
 
     try {
       this.tokens.push(token);
-      log(
+      console.log(
         `Updated token ${token.symbol} to price ${JSON.stringify(token.price)}`
       );
     } catch (err) {
@@ -345,8 +346,7 @@ class PriceFetcher {
     return this.tokens;
   }
 
-  public async getCoingeckoFullTokenListByChains(Network: Record<string,number>): Promise<Token[]> {
-    const log = console.log;
+  public async getCoingeckoFullTokenListByChains(Network: Record<string, number>): Promise<Token[]> {
 
     log(`Submitting request for full unfiltered token list from coingecko`)
     const response = await this.queryFullListCoingecko(`/coins/list?include_platform=true&x_cg_demo_api_key=${COINGECKO_API_KEY}`);
@@ -363,9 +363,9 @@ class PriceFetcher {
         platformIdtoChainArray[platformId] = chainId;
       }
     })
-    log('platformIdArray',platformIdArray)
+    log('platformIdArray', platformIdArray)
 
-    log('platformIdtoChainArray',platformIdtoChainArray)
+    log('platformIdtoChainArray', platformIdtoChainArray)
 
     log(`Discovered platform ids ${platformIdArray}`)
     const platformMap = Object.entries(platformIdArray).reduce((o: any, i) => {
@@ -382,7 +382,7 @@ class PriceFetcher {
           if (chain === undefined) {
             continue;
           } else {
-            filteredTokenList.push({'symbol': token.symbol, 'chainId': platformIdtoChainArray[platform.toLowerCase()], 'address': platforms[platform]})
+            filteredTokenList.push({ 'symbol': token.symbol, 'chainId': platformIdtoChainArray[platform.toLowerCase()], 'address': platforms[platform] })
           }
         }
       }
