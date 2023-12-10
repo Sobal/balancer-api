@@ -32,7 +32,7 @@ import {
 import { CfnWebACL, CfnWebACLAssociation } from 'aws-cdk-lib/aws-wafv2';
 import { PRODUCTION_NETWORKS } from './src/constants/general';
 import { join } from 'path';
-import { LogGroup } from 'aws-cdk-lib/aws-logs';
+import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { rateLimitSettings } from './cdk/waf';
 import { autoScaleSecondaryIndex, Capacities } from './cdk/dynamodb';
 
@@ -340,7 +340,6 @@ export class BalancerPoolsAPI extends Stack {
         timeout: Duration.seconds(60),
       }
     );
-
     const updateTokensFromCoingeckoLambda = new NodejsFunction(
       this,
       'updateTokensFromCoingeckoFunction',
@@ -577,7 +576,9 @@ export class BalancerPoolsAPI extends Stack {
       defenderWebhookLambda
     );
 
-    const apiGatewayLogGroup = new LogGroup(this, 'ApiGatewayLogs');
+    const apiGatewayLogGroup = new LogGroup(this, 'ApiGatewayLogs',{
+      retention: RetentionDays.ONE_WEEK
+    });
 
     const api = new RestApi(this, 'poolsApi', {
       restApiName: 'Pools Service',
