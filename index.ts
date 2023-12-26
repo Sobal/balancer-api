@@ -32,7 +32,7 @@ import {
 import { CfnWebACL, CfnWebACLAssociation } from 'aws-cdk-lib/aws-wafv2';
 import { PRODUCTION_NETWORKS } from './src/constants/general';
 import { join } from 'path';
-import { LogGroup } from 'aws-cdk-lib/aws-logs';
+import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { rateLimitSettings } from './cdk/waf';
 import { autoScaleSecondaryIndex, Capacities } from './cdk/dynamodb';
 
@@ -58,6 +58,7 @@ const {
   GH_WEBHOOK_PAT,
   ALLOWLIST_POOL_ENDPOINT,
   ALLOWLIST_TOKEN_ENDPOINT,
+  COINGECKO_API_KEY,
   DEBUG,
 } = process.env;
 
@@ -132,22 +133,22 @@ export class BalancerPoolsAPI extends Stack {
       writeCapacity: POOLS_WRITE_CAPACITY,
     });
 
-    const poolsTableReadScaling = poolsTable.autoScaleReadCapacity({ 
+    const poolsTableReadScaling = poolsTable.autoScaleReadCapacity({
       minCapacity: POOLS_READ_CAPACITY,
-      maxCapacity: POOLS_READ_CAPACITY * AUTOSCALE_MAX_MULTIPLIER
+      maxCapacity: POOLS_READ_CAPACITY * AUTOSCALE_MAX_MULTIPLIER,
     });
 
     poolsTableReadScaling.scaleOnUtilization({
-      targetUtilizationPercent: 80
+      targetUtilizationPercent: 80,
     });
 
-    const poolsTableWriteScaling = poolsTable.autoScaleWriteCapacity({ 
+    const poolsTableWriteScaling = poolsTable.autoScaleWriteCapacity({
       minCapacity: POOLS_WRITE_CAPACITY,
-      maxCapacity: POOLS_WRITE_CAPACITY * AUTOSCALE_MAX_MULTIPLIER
+      maxCapacity: POOLS_WRITE_CAPACITY * AUTOSCALE_MAX_MULTIPLIER,
     });
 
     poolsTableWriteScaling.scaleOnUtilization({
-      targetUtilizationPercent: 80
+      targetUtilizationPercent: 80,
     });
 
     poolsTable.addGlobalSecondaryIndex({
@@ -198,17 +199,22 @@ export class BalancerPoolsAPI extends Stack {
     const secondaryIndexCapacities: Capacities = {
       read: {
         min: POOLS_IDX_READ_CAPACITY,
-        max: POOLS_IDX_READ_CAPACITY * AUTOSCALE_MAX_MULTIPLIER
+        max: POOLS_IDX_READ_CAPACITY * AUTOSCALE_MAX_MULTIPLIER,
       },
       write: {
         min: POOLS_IDX_WRITE_CAPACITY,
-        max: POOLS_IDX_WRITE_CAPACITY * AUTOSCALE_MAX_MULTIPLIER
-      }
-    }
+        max: POOLS_IDX_WRITE_CAPACITY * AUTOSCALE_MAX_MULTIPLIER,
+      },
+    };
 
-    autoScaleSecondaryIndex(this, 'byTotalLiquidity', secondaryIndexCapacities, 80)
-    autoScaleSecondaryIndex(this, 'byVolume', secondaryIndexCapacities, 80)
-    autoScaleSecondaryIndex(this, 'byApr', secondaryIndexCapacities, 80)
+    autoScaleSecondaryIndex(
+      this,
+      'byTotalLiquidity',
+      secondaryIndexCapacities,
+      80
+    );
+    autoScaleSecondaryIndex(this, 'byVolume', secondaryIndexCapacities, 80);
+    autoScaleSecondaryIndex(this, 'byApr', secondaryIndexCapacities, 80);
 
     const tokensTable = new Table(this, 'tokens', {
       partitionKey: {
@@ -225,22 +231,22 @@ export class BalancerPoolsAPI extends Stack {
       writeCapacity: TOKENS_WRITE_CAPACITY,
     });
 
-    const tokensTableReadScaling = tokensTable.autoScaleReadCapacity({ 
+    const tokensTableReadScaling = tokensTable.autoScaleReadCapacity({
       minCapacity: TOKENS_READ_CAPACITY,
-      maxCapacity: TOKENS_READ_CAPACITY * AUTOSCALE_MAX_MULTIPLIER
+      maxCapacity: TOKENS_READ_CAPACITY * AUTOSCALE_MAX_MULTIPLIER,
     });
 
     tokensTableReadScaling.scaleOnUtilization({
-      targetUtilizationPercent: 80
+      targetUtilizationPercent: 80,
     });
 
-    const tokensTableWriteScaling = tokensTable.autoScaleWriteCapacity({ 
+    const tokensTableWriteScaling = tokensTable.autoScaleWriteCapacity({
       minCapacity: TOKENS_WRITE_CAPACITY,
-      maxCapacity: TOKENS_WRITE_CAPACITY * AUTOSCALE_MAX_MULTIPLIER
+      maxCapacity: TOKENS_WRITE_CAPACITY * AUTOSCALE_MAX_MULTIPLIER,
     });
 
     tokensTableWriteScaling.scaleOnUtilization({
-      targetUtilizationPercent: 80
+      targetUtilizationPercent: 80,
     });
 
     /**
@@ -334,6 +340,19 @@ export class BalancerPoolsAPI extends Stack {
         timeout: Duration.seconds(60),
       }
     );
+    const updateTokensFromCoingeckoLambda = new NodejsFunction(
+      this,
+      'updateTokensFromCoingeckoFunction',
+      {
+        entry: join(__dirname, 'src', 'lambdas', 'update-tokens-from-coingecko.ts'),
+        ...nodeJsFunctionProps,
+        memorySize: 512,
+        timeout: Duration.seconds(300),
+        environment: {
+          COINGECKO_API_KEY: COINGECKO_API_KEY || '',
+        },
+      }
+    );
 
     const tenderlySimulateLambda = new NodejsFunction(
       this,
@@ -386,6 +405,22 @@ export class BalancerPoolsAPI extends Stack {
       timeout: Duration.seconds(15),
     });
 
+    const defenderWebhookLambda = new NodejsFunction(
+      this,
+      'defenderWebhookFunction',
+      {
+        entry: join(__dirname, 'src', 'lambdas', 'defender-webhook.ts'),
+        environment: {
+          ...nodeJsFunctionProps.environment,
+          GH_WEBHOOK_PAT: GH_WEBHOOK_PAT || '',
+          ALLOWLIST_POOL_ENDPOINT: ALLOWLIST_POOL_ENDPOINT || '',
+          ALLOWLIST_TOKEN_ENDPOINT: ALLOWLIST_TOKEN_ENDPOINT || '',
+        },
+        runtime: Runtime.NODEJS_14_X,
+        timeout: Duration.seconds(15),
+      }
+    );
+
     /**
      * Lambda Schedules
      */
@@ -397,26 +432,45 @@ export class BalancerPoolsAPI extends Stack {
       new LambdaFunction(updateTokenPricesLambda)
     );
 
+    const updateTokensFromCoingeckoRule = new Rule(this, 'updateTokensFromCoingeckoInterval', {
+      schedule: Schedule.expression('rate(30 minutes)'),
+    });
+    updateTokensFromCoingeckoRule.addTarget(
+      new LambdaFunction(updateTokensFromCoingeckoLambda)
+    );
 
     const updatePeriodWord = UPDATE_POOLS_INTERVAL > 1 ? 'minutes' : 'minute';
-    Object.entries(updatePoolsLambdas).forEach(([chainId, updatePoolsLambda]) => {
-      const updatePoolsRule = new Rule(this, `updatePoolsInterval-${chainId}`, {
-        schedule: Schedule.expression(
-          `rate(${UPDATE_POOLS_INTERVAL} ${updatePeriodWord})`
-        ),
-      });
-      updatePoolsRule.addTarget(new LambdaFunction(updatePoolsLambda));
-    });
+    Object.entries(updatePoolsLambdas).forEach(
+      ([chainId, updatePoolsLambda]) => {
+        const updatePoolsRule = new Rule(
+          this,
+          `updatePoolsInterval-${chainId}`,
+          {
+            schedule: Schedule.expression(
+              `rate(${UPDATE_POOLS_INTERVAL} ${updatePeriodWord})`
+            ),
+          }
+        );
+        updatePoolsRule.addTarget(new LambdaFunction(updatePoolsLambda));
+      }
+    );
 
-    const decoratePeriodWord = DECORATE_POOLS_INTERVAL > 1 ? 'minutes' : 'minute';
-    Object.entries(decoratePoolsLambdas).forEach(([chainId, decoratePoolsLambda]) => {
-      const decoratePoolsRule = new Rule(this, `decoratePoolsInterval-${chainId}`, {
-        schedule: Schedule.expression(
-          `rate(${DECORATE_POOLS_INTERVAL} ${decoratePeriodWord})`
-        ),
-      });
-      decoratePoolsRule.addTarget(new LambdaFunction(decoratePoolsLambda));
-    });
+    const decoratePeriodWord =
+      DECORATE_POOLS_INTERVAL > 1 ? 'minutes' : 'minute';
+    Object.entries(decoratePoolsLambdas).forEach(
+      ([chainId, decoratePoolsLambda]) => {
+        const decoratePoolsRule = new Rule(
+          this,
+          `decoratePoolsInterval-${chainId}`,
+          {
+            schedule: Schedule.expression(
+              `rate(${DECORATE_POOLS_INTERVAL} ${decoratePeriodWord})`
+            ),
+          }
+        );
+        decoratePoolsRule.addTarget(new LambdaFunction(decoratePoolsLambda));
+      }
+    );
 
     /**
      * Access Rules
@@ -437,6 +491,7 @@ export class BalancerPoolsAPI extends Stack {
     tokensTable.grantReadData(runSORLambda);
     tokensTable.grantReadData(orderLambda);
     tokensTable.grantReadWriteData(updateTokenPricesLambda);
+    tokensTable.grantReadWriteData(updateTokensFromCoingeckoLambda);
     Object.values(decoratePoolsLambdas).forEach(decoratePoolsLambda => {
       tokensTable.grantReadData(decoratePoolsLambda);
     });
@@ -482,7 +537,7 @@ export class BalancerPoolsAPI extends Stack {
         'integration.request.path.chainId': 'method.request.path.chainId',
         'integration.request.querystring.useDb':
           'method.request.querystring.useDb',
-          'integration.request.querystring.minLiquidity':
+        'integration.request.querystring.minLiquidity':
           'method.request.querystring.minLiquidity',
       },
     });
@@ -517,8 +572,13 @@ export class BalancerPoolsAPI extends Stack {
         'integration.request.path.chainId': 'method.request.path.chainId',
       },
     });
+    const defenderWebhookIntegration = new LambdaIntegration(
+      defenderWebhookLambda
+    );
 
-    const apiGatewayLogGroup = new LogGroup(this, 'ApiGatewayLogs');
+    const apiGatewayLogGroup = new LogGroup(this, 'ApiGatewayLogs',{
+      retention: RetentionDays.ONE_WEEK
+    });
 
     const api = new RestApi(this, 'poolsApi', {
       restApiName: 'Pools Service',
@@ -621,7 +681,7 @@ export class BalancerPoolsAPI extends Stack {
       },
     });
     addCorsOptions(order);
-  
+
     const checkWallet = api.root.addResource('check-wallet');
     checkWallet.addMethod('GET', checkWalletIntegration, {
       requestParameters: {
@@ -647,6 +707,9 @@ export class BalancerPoolsAPI extends Stack {
         'method.request.path.chainId': true,
       },
     });
+
+    const defender = api.root.addResource('defender');
+    defender.addMethod('POST', defenderWebhookIntegration);
 
     /**
      * Web Application Firewall

@@ -12,6 +12,7 @@
   "coingecko": {
     "platformId": "ethereum",
     "nativeAssetId": "ethereum",
-    "nativeAssetPriceSymbol": "eth"
+    "nativeAssetPriceSymbol": "eth",
+    "nativeAssetDecimals": 18
   }
 }

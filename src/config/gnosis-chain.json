@@ -12,6 +12,7 @@
   "coingecko": {
     "platformId": "xdai",
     "nativeAssetId": "xdai",
-    "nativeAssetPriceSymbol": "xdai"
+    "nativeAssetPriceSymbol": "xdai",
+    "nativeAssetDecimals": 18
   }
 }
