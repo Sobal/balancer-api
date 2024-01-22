@@ -1,7 +1,7 @@
 import fetch from 'isomorphic-fetch';
 import debug from 'debug';
 import { captureException } from '@sentry/serverless';
-import { Price, CoingeckoPriceRepository } from '@balancer-labs/sdk';
+import { Price, CoingeckoPriceRepository } from '@sobal/sdk';
 import { BigNumber } from 'bignumber.js';
 import { getPlatformId, getNativeAssetPriceSymbol } from '@/modules/network';
 import { Token } from '@/modules/tokens';
@@ -12,7 +12,7 @@ import {
   COINGECKO_MAX_TPS,
 } from '@/constants';
 import { formatPrice } from './utils';
-import configs  from '@/config';
+import configs from '@/config';
 
 const TOKEN_UPDATE_TIME = 60 * 15 * 1000; // 5 Minutes
 const TOKEN_RETRY_PRICE_DATA_TIME = 24 * 60 * 60 * 7 * 1000; // 1 Week
@@ -28,6 +28,19 @@ interface PriceData {
 interface CoinGeckoData {
   [key: string]: PriceData;
 }
+
+interface StringObject {
+  [id: string]: string | undefined;
+}
+
+type CoingeckoToken = {
+  id: string;
+  name: string;
+  symbol: string;
+  price?: string;
+  timestamp?: number;
+  platforms: { [network: string]: string };
+};
 
 class HTTPError extends Error {
   code: number;
@@ -55,7 +68,9 @@ class PriceFetcher {
     this.onCompleteCallback = null;
   }
 
-  private async queryCoingecko(endpoint: string): Promise<CoinGeckoData> {
+  private async queryCoingecko(
+    endpoint: string
+  ): Promise<CoinGeckoData> {
     const response = await fetch(COINGECKO_BASEURL + endpoint, {
       method: 'GET',
       headers: {
@@ -75,12 +90,40 @@ class PriceFetcher {
     }
 
     const data = await response.json();
+
+    return data;
+  }
+
+  private async queryFullListCoingecko(
+    endpoint: string
+  ): Promise<CoingeckoToken[]> {
+
+    const response = await fetch(COINGECKO_BASEURL + endpoint, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+    });
+
+    log(`Received ${response.status} status code from CoinGecko`);
+
+    if (response.status >= 400) {
+      const err = new HTTPError(
+        `Received ${response.status} status code from CoinGecko`
+      );
+      err.code = response.status;
+      throw err;
+    }
+
+    const data = await response.json();
+
     return data;
   }
 
   private async processQueue(): Promise<void> {
     if (this.lastRateLimit > Date.now() - this.rateLimitWaitTimeMS) {
-      // log(`Currently rate limited, waiting ${((this.lastRateLimit + this.rateLimitWaitTimeMS) - Date.now())/1000} more seconds`);
+      console.log(`Currently rate limited, waiting ${((this.lastRateLimit + this.rateLimitWaitTimeMS) - Date.now()) / 1000} more seconds`);
       setTimeout(() => this.processQueue(), 1000);
       return;
     }
@@ -118,7 +161,7 @@ class PriceFetcher {
         this.queue = this.queue.concat(nextBatch);
       } else {
         console.error('Unknown Error from Coingecko. Aborting.');
-        captureException(err, { extra: { batch: nextBatch } })
+        captureException(err, { extra: { batch: nextBatch } });
       }
     }
 
@@ -147,7 +190,6 @@ class PriceFetcher {
   private async fetchPrices(chainId, tokens: Token[]): Promise<CoinGeckoData> {
     const tokenAddresses = tokens.map(t => t.address);
     const endpoint = this.getEndpoint(chainId, tokenAddresses);
-
     return await this.queryCoingecko(endpoint);
   }
 
@@ -211,7 +253,7 @@ class PriceFetcher {
         }
         if (tokenPrice) {
           log(
-            `Found price for token ${token.symbol} via the SDK! Price is: ${tokenPrice}`
+            `Found price for token ${token.symbol} via the SDK! Price is: ${JSON.stringify(tokenPrice)}`
           );
           token.price = formatPrice(tokenPrice);
         } else {
@@ -226,9 +268,6 @@ class PriceFetcher {
 
     try {
       this.tokens.push(token);
-      log(
-        `Updated token ${token.symbol} to price ${JSON.stringify(token.price)}`
-      );
     } catch (err) {
       console.error(
         `Encountered error calling updateToken on ${token.symbol}: ${err.message}`
@@ -240,8 +279,10 @@ class PriceFetcher {
    * Fetches the price of all native assets as a pre-load so that
    * token prices on their chain can be calculated accurately
    **/
-  private async fetchNativeAssetPrices() {
-    const nativeAssetIds = Object.values(configs).map(c => c.coingecko.nativeAssetId).join(',');
+  public async fetchNativeAssetPrices() {
+    const nativeAssetIds = Object.values(configs)
+      .map(c => c.coingecko.nativeAssetId)
+      .join(',');
     const coinGeckoQuery = `/simple/price?ids=${nativeAssetIds}&vs_currencies=usd`;
 
     log('Fetching native prices with query: ', coinGeckoQuery);
@@ -252,7 +293,7 @@ class PriceFetcher {
 
     Object.values(configs).forEach(config => {
       const id = config.coingecko.nativeAssetId;
-      const nativeAssetSymbol = config.coingecko.nativeAssetPriceSymbol
+      const nativeAssetSymbol = config.coingecko.nativeAssetPriceSymbol;
       log('Id: ', id, ' symbol: ', nativeAssetSymbol);
       this.nativeAssetPrices[nativeAssetSymbol] = new BigNumber(
         coingeckoResult[id]['usd']
@@ -284,10 +325,8 @@ class PriceFetcher {
         return;
 
       log(
-        `Token: ${token.symbol} has price data: ${
-          token.noPriceData
-        }, was last updated ${
-          (Date.now() - token.lastUpdate) / 1000
+        `Token: ${token.symbol} has price data: ${token.noPriceData
+        }, was last updated ${(Date.now() - token.lastUpdate) / 1000
         } seconds ago`
       );
       this.queue.push(token);
@@ -300,6 +339,54 @@ class PriceFetcher {
     await this.processQueue();
     return this.tokens;
   }
+
+  public async getCoingeckoFullTokenListByChains(Network: Record<string, number>): Promise<Token[]> {
+
+    log(`Submitting request for full unfiltered token list from coingecko`)
+    const response = await this.queryFullListCoingecko(`/coins/list?include_platform=true`); // add to end of endpoint url if further limimtations get added &x_cg_demo_api_key=${COINGECKO_API_KEY}
+
+    const platformIdArray = [];
+    const platformIdtoChainArray = [];
+    const filteredTokenList: Token[] = [];
+
+
+    Object.entries(Network).forEach(([, chainId]) => {
+      const platformId = getPlatformId(chainId);
+      if (platformId) {
+        platformIdArray.push(platformId)
+        platformIdtoChainArray[platformId] = chainId;
+      }
+    })
+    log('platformIdArray', platformIdArray)
+
+    log('platformIdtoChainArray', platformIdtoChainArray)
+
+    log(`Discovered platform ids ${platformIdArray}`)
+    const platformMap = Object.entries(platformIdArray).reduce((o: any, i) => {
+      o[i[1]] = i[0];
+      return o;
+    }, {}) as StringObject;
+
+    log(`Filtering token list by platformId`)
+    response.forEach((token) => {
+      const platforms = token.platforms as StringObject;
+      for (const platform in platforms) {
+        if (platform !== '' && platforms[platform] !== '') {
+          const chain = platformMap[platform.toLowerCase()];
+          if (chain === undefined) {
+            continue;
+          } else {
+            filteredTokenList.push({ symbol: token.symbol, chainId: platformIdtoChainArray[platform.toLowerCase()], address: platforms[platform], id: token.id })
+          }
+        }
+      }
+    });
+
+    log(`Finished building Token List Object`)
+    return filteredTokenList;
+
+  }
+
 }
 
 export default PriceFetcher;

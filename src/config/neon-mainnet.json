@@ -1,0 +1,18 @@
+{
+  "networkId": 245022934,
+  "network": "neon-mainnet",
+  "rpc": "https://neon-proxy-mainnet.solana.p2p.org",
+  "subgraph": "https://neon-subgraph.sobal.fi/sobal-pools",
+  "addresses": {
+    "nativeAsset": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+    "wrappedNativeAsset": "0x202C35e517Fa803B537565c40F0a6965D7204609",
+    "vault": "0x7122e35ceC2eED4A989D9b0A71998534A203972C",
+    "batchRelayer": "0x12977Bed9E12028789B2075119F8CcfE192C9ED6"
+  },
+  "coingecko": {
+    "platformId": "neon-evm",
+    "nativeAssetId": "neon",
+    "nativeAssetPriceSymbol": "neon",
+    "nativeAssetDecimals": 18
+  }
+}

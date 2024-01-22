@@ -39,6 +39,7 @@ cp .env.example .env
 ```
 
 Open the `.env` file and set `INFURA_PROJECT_ID` to your personal [Infura](https://infura.io/) project ID.
+Set the `COINGECKO_API_KEY` to a demo key from Coingeckos API accounts.
 
 ### Local Development
 
@@ -111,7 +112,7 @@ API running somewhere, and a Hardhat network running.
 Before Starting set the following variables in your .env file:
 
 - `RPC_URL` - URL to your ETH node or Infura/Alchemy/etc. Will use infura with `INFURA_PROJECT_ID` if set.
-- `ENDPOINT_URL` - URL of your API instance - Defaults to `https://api.balancer.fi/`
+- `ENDPOINT_URL` - URL of your API instance - Defaults to `https://api.sobal.fi/`
 
 Then run the following:
 
