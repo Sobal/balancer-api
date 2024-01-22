@@ -41,7 +41,7 @@ describe('sor/order', () => {
           eth: '0.004'
         }
       })
-      require('@balancer-labs/sdk')._setMockSwapInfo({
+      require('@sobal/sdk')._setMockSwapInfo({
         swaps: [],
         tokenAddresses: [],
         swapAmount: parseFixed('1', 18),
@@ -64,7 +64,7 @@ describe('sor/order', () => {
 
       it('Generates correct price data for a buy order', async () => {
         sorRequest.orderKind = 'buy';
-        require('@balancer-labs/sdk')._setMockSwapInfo({
+        require('@sobal/sdk')._setMockSwapInfo({
           swaps: [],
           tokenAddresses: [],
           tokenIn: TOKENS[networkId].ETH.address,
