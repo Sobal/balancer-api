@@ -10,6 +10,7 @@ import {
   COINGECKO_BASEURL,
   COINGECKO_MAX_TOKENS_PER_PAGE,
   COINGECKO_MAX_TPS,
+  COINGECKO_API_KEY,
 } from '@/constants';
 import { formatPrice } from './utils';
 import configs from '@/config';
@@ -190,6 +191,7 @@ class PriceFetcher {
   private async fetchPrices(chainId, tokens: Token[]): Promise<CoinGeckoData> {
     const tokenAddresses = tokens.map(t => t.address);
     const endpoint = this.getEndpoint(chainId, tokenAddresses);
+    console.log('Coingecko Request URL:',endpoint)
     return await this.queryCoingecko(endpoint);
   }
 
@@ -202,7 +204,7 @@ class PriceFetcher {
     }
     const endpoint = `/simple/token_price/${platformId}?contract_addresses=${tokenAddresses.join(
       ','
-    )}&vs_currencies=usd`;
+    )}&vs_currencies=usd&x_cg_demo_api_key=${COINGECKO_API_KEY}`;
 
     return endpoint;
   }
