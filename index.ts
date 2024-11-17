@@ -255,6 +255,7 @@ export class BalancerPoolsAPI extends Stack {
 
     const nodeJsFunctionProps: NodejsFunctionProps = {
       bundling: {
+        esbuildVersion: "0.21.5",
         externalModules: ['aws-sdk'],
       },
       environment: {
@@ -338,6 +339,9 @@ export class BalancerPoolsAPI extends Stack {
         ...nodeJsFunctionProps,
         memorySize: 512,
         timeout: Duration.seconds(60),
+        environment: {
+          COINGECKO_API_KEY: COINGECKO_API_KEY || '',
+        },
       }
     );
     const updateTokensFromCoingeckoLambda = new NodejsFunction(
@@ -359,6 +363,9 @@ export class BalancerPoolsAPI extends Stack {
       'tenderlySimulateFunction',
       {
         entry: join(__dirname, 'src', 'lambdas', 'tenderly-simulate.ts'),
+        bundling: {
+          esbuildVersion: "0.21.5",
+        },
         environment: {
           TENDERLY_USER: TENDERLY_USER || '',
           TENDERLY_PROJECT: TENDERLY_PROJECT || '',
@@ -374,6 +381,9 @@ export class BalancerPoolsAPI extends Stack {
       'tenderlyEncodeStatesFunction',
       {
         entry: join(__dirname, 'src', 'lambdas', 'tenderly-encode-states.ts'),
+        bundling: {
+          esbuildVersion: "0.21.5",
+        },
         environment: {
           TENDERLY_USER: TENDERLY_USER || '',
           TENDERLY_PROJECT: TENDERLY_PROJECT || '',
@@ -386,6 +396,9 @@ export class BalancerPoolsAPI extends Stack {
 
     const checkWalletLambda = new NodejsFunction(this, 'checkWalletFunction', {
       entry: join(__dirname, 'src', 'lambdas', 'check-wallet.ts'),
+      bundling: {
+        esbuildVersion: "0.21.5",
+      },
       environment: {
         SANCTIONS_API_KEY: SANCTIONS_API_KEY || '',
       },
@@ -395,6 +408,9 @@ export class BalancerPoolsAPI extends Stack {
 
     const halWebhookLambda = new NodejsFunction(this, 'halWebhookFunction', {
       entry: join(__dirname, 'src', 'lambdas', 'hal-webhook.ts'),
+      bundling: {
+        esbuildVersion: "0.21.5",
+      },
       environment: {
         ...nodeJsFunctionProps.environment,
         GH_WEBHOOK_PAT: GH_WEBHOOK_PAT || '',
@@ -410,6 +426,9 @@ export class BalancerPoolsAPI extends Stack {
       'defenderWebhookFunction',
       {
         entry: join(__dirname, 'src', 'lambdas', 'defender-webhook.ts'),
+        bundling: {
+          esbuildVersion: "0.21.5",
+        },
         environment: {
           ...nodeJsFunctionProps.environment,
           GH_WEBHOOK_PAT: GH_WEBHOOK_PAT || '',
@@ -426,7 +445,7 @@ export class BalancerPoolsAPI extends Stack {
      */
 
     const updateTokenPricesRule = new Rule(this, 'updateTokensInterval', {
-      schedule: Schedule.expression('rate(2 minutes)'),
+      schedule: Schedule.expression('rate(10 minutes)'),
     });
     updateTokenPricesRule.addTarget(
       new LambdaFunction(updateTokenPricesLambda)
