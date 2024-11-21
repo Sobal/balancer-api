@@ -264,7 +264,7 @@ export class BalancerPoolsAPI extends Stack {
         SENTRY_DSN: SENTRY_DSN || '',
         DEBUG: DEBUG || '',
       },
-      runtime: Runtime.NODEJS_14_X,
+      runtime: Runtime.NODEJS_16_X,
       timeout: Duration.seconds(15),
     };
 
@@ -371,7 +371,7 @@ export class BalancerPoolsAPI extends Stack {
           TENDERLY_PROJECT: TENDERLY_PROJECT || '',
           TENDERLY_ACCESS_KEY: TENDERLY_ACCESS_KEY || '',
         },
-        runtime: Runtime.NODEJS_14_X,
+        runtime: Runtime.NODEJS_16_X,
         timeout: Duration.seconds(15),
       }
     );
@@ -389,7 +389,7 @@ export class BalancerPoolsAPI extends Stack {
           TENDERLY_PROJECT: TENDERLY_PROJECT || '',
           TENDERLY_ACCESS_KEY: TENDERLY_ACCESS_KEY || '',
         },
-        runtime: Runtime.NODEJS_14_X,
+        runtime: Runtime.NODEJS_16_X,
         timeout: Duration.seconds(15),
       }
     );
@@ -402,7 +402,7 @@ export class BalancerPoolsAPI extends Stack {
       environment: {
         SANCTIONS_API_KEY: SANCTIONS_API_KEY || '',
       },
-      runtime: Runtime.NODEJS_14_X,
+      runtime: Runtime.NODEJS_16_X,
       timeout: Duration.seconds(15),
     });
 
@@ -417,7 +417,7 @@ export class BalancerPoolsAPI extends Stack {
         ALLOWLIST_POOL_ENDPOINT: ALLOWLIST_POOL_ENDPOINT || '',
         ALLOWLIST_TOKEN_ENDPOINT: ALLOWLIST_TOKEN_ENDPOINT || '',
       },
-      runtime: Runtime.NODEJS_14_X,
+      runtime: Runtime.NODEJS_16_X,
       timeout: Duration.seconds(15),
     });
 
@@ -435,7 +435,7 @@ export class BalancerPoolsAPI extends Stack {
           ALLOWLIST_POOL_ENDPOINT: ALLOWLIST_POOL_ENDPOINT || '',
           ALLOWLIST_TOKEN_ENDPOINT: ALLOWLIST_TOKEN_ENDPOINT || '',
         },
-        runtime: Runtime.NODEJS_14_X,
+        runtime: Runtime.NODEJS_16_X,
         timeout: Duration.seconds(15),
       }
     );
