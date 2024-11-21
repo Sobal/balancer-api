@@ -1,21 +1,27 @@
-import { SubgraphPoolBase } from "@balancer-labs/sdk";
+import { SubgraphPoolBase, SwapInfo } from '@sobal/sdk';
 import { Pool } from "@/modules/pools";
+import { BigNumber } from "ethers";
 
 export enum PoolType {
-  Weighted = 'Weighted'
+  Weighted = 'Weighted',
 }
 
-let mockSwapInfo = {
+let mockSwapInfo: SwapInfo = {
   swaps: [],
   tokenAddresses: [],
-  swapAmount: 0,
-  returnAmount: 0,
-  returnAmountConsideringFees: 0,
+  swapAmount: BigNumber.from(0),
+  swapAmountForSwaps: BigNumber.from(0),
+  returnAmount: BigNumber.from(0),
+  returnAmountFromSwaps: BigNumber.from(0),
+  returnAmountConsideringFees: BigNumber.from(0),
+  tokenIn: '0x0',
+  tokenOut: '0x0',
+  marketSp: '',
 };
 
 let mockSubgraphPools: Pool[] = [];
 let mockSorPools: SubgraphPoolBase[] = [];
-let mockEncodedBatchSwap = "";
+let mockEncodedBatchSwap = '';
 
 let isJoinExitSwap = false;
 
@@ -37,7 +43,6 @@ export const BalancerSDK = jest.fn().mockImplementation(() => {
       }),
       swapCostCalculator: mockSwapCostCalculator,
     },
-    
   };
 });
 
@@ -49,7 +54,7 @@ export const CoingeckoPriceRepository = jest.fn().mockImplementation(() => {
 
 export const PoolsSubgraphRepository = jest.fn().mockImplementation(() => {
   return {
-    fetch: jest.fn().mockImplementation((options) => {
+    fetch: jest.fn().mockImplementation(options => {
       if (options?.skip === 0) return mockSubgraphPools;
       return [];
     }),
@@ -59,7 +64,7 @@ export const PoolsSubgraphRepository = jest.fn().mockImplementation(() => {
 export const Swaps = {
   encodeBatchSwap: jest.fn().mockImplementation(() => {
     return mockEncodedBatchSwap;
-  })
+  }),
 };
 
 export const canUseJoinExit = jest.fn().mockImplementation(() => {
@@ -73,11 +78,9 @@ export const someJoinExit = jest.fn().mockImplementation(() => {
 export const buildRelayerCalls = jest.fn().mockImplementation(() => {
   return {
     to: '0x2536dfeeCB7A0397CF98eDaDA8486254533b1aFA',
-    data: '0x123456789abcdef'
-  }
-})
-
-
+    data: '0x123456789abcdef',
+  };
+});
 
 export enum SwapType {
   SwapExactIn = 0,
@@ -89,7 +92,7 @@ export enum SwapTypes {
   SwapExactOut = 1,
 }
 
-export function _setMockSwapInfo(swapInfo) {
+export function _setMockSwapInfo(swapInfo: SwapInfo) {
   mockSwapInfo = swapInfo;
 }
 

@@ -12,6 +12,7 @@
   "coingecko": {
     "platformId": "arbitrum-one",
     "nativeAssetId": "ethereum",
-    "nativeAssetPriceSymbol": "eth"
+    "nativeAssetPriceSymbol": "eth",
+    "nativeAssetDecimals": 18
   }
 }

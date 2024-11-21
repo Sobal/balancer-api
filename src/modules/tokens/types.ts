@@ -1,10 +1,16 @@
-import { Token as SDKToken } from '@balancer-labs/sdk';
+import { Token as SDKToken } from '@sobal/sdk';
 import { BigNumberish } from '@ethersproject/bignumber';
 
 export interface Token extends SDKToken {
   chainId: number;
   lastUpdate?: number;
   noPriceData?: boolean;
+  key?: number;
+  id?: string;
+}
+
+export interface GroupedToken {
+  [chainId: number]: Token[];
 }
 
 export enum SwapTokenType {
